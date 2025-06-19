@@ -32,3 +32,13 @@ FAILSAFES = {
     23: [0.08, 0.15, 0.19, 0.25, 0.32, 0.57, 1],
     24: [0.04, 0.08, 0.15, 0.19, 0.32, 0.57, 1]
 }
+
+FAILSAFE_TEXT = {
+    0: "No Failsafe!",
+    1: "Failsafe I",
+    2: "Failsafe II",
+    3: "Failsafe III",
+    4: "Failsafe IV",
+    5: "Failsafe V",
+    6: "Failsafe VI :("
+}
