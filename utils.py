@@ -1,6 +1,6 @@
 
 import numpy as np
-from typing import List
+from typing import List, Callable
 
 def expected_frac(p=0.20):
     """
@@ -18,7 +18,13 @@ def expected_frac(p=0.20):
 
     return 1 / expected_value
 
-def cumulative_prob(probs: list):
+def modified_prob(probs: List[float], modifier: Callable = lambda x: x) -> List[float]:
+    """
+    Applies a modifier to the expected fraction of each probability in the list.
+    """
+    return [modifier(p) for p in probs]
+
+def cumulative_prob(probs: list) -> float:
     """
     Calculates the cumulative expected steps
     """
