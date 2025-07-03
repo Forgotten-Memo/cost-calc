@@ -10,6 +10,7 @@ import pandas as pd
 def get_sim_results(base_cost: int, catalyst_selected: List[str], n: int = 10000) -> Tuple[List[float], List[int]]:
     results = []
     failsafes = []
+    steps_history = []
     final_catalyst = catalyst_selected.pop("final", "Potent Catalyst")
     failsafe_probs = utils.modified_prob(CONST.FAILSAFES[enhancement_level], CONST.CATALYST_MODIFIERS.get(final_catalyst, lambda x: x))
 
@@ -24,6 +25,7 @@ def get_sim_results(base_cost: int, catalyst_selected: List[str], n: int = 10000
         if len(raw_probs) != len(costs):
             raise ValueError("raw_probs and cost must have the same length")
         while failsafe < 7:
+            steps += 1
             max_state = len(raw_probs)
             state = 0
             fails = [0] * max_state
@@ -54,7 +56,8 @@ def get_sim_results(base_cost: int, catalyst_selected: List[str], n: int = 10000
                 break
             else:
                 failsafe += 1
-    return results, failsafes
+        steps_history.append(steps)
+    return results, failsafes, steps_history
 
 
 @st.cache_data(show_spinner=False)
@@ -146,9 +149,9 @@ def simulate_tab(chain_length, base_cost):
     if st.button("Run Simulation", type="primary"):
         with st.spinner("Running hammer simulations...", show_time=True):
             if mode == 'Single Simulation':
-                results, failsafes = get_sim_results(base_cost, catalyst_selected, n=n)
+                results, failsafes, steps = get_sim_results(base_cost, catalyst_selected, n=n)
             else:
-                results, failsafes = get_cached_sim_results(base_cost, catalyst_selected, n=n)
+                results, failsafes, steps = get_cached_sim_results(base_cost, catalyst_selected, n=n)
 
             st.session_state['results'] = results
             st.session_state['failsafes'] = failsafes
@@ -156,13 +159,14 @@ def simulate_tab(chain_length, base_cost):
     if (results := st.session_state.get('results')) and (failsafes := st.session_state.get('failsafes')):
         if mode == 'Single Simulation':
             st.subheader(f"You took: `{results[0]:,.0f}` opals (`{results[0]/gold_market_price*1000000:,.0f}` gold).")
-            st.subheader(f"`{CONST.FAILSAFE_TEXT[failsafes[0]]}`")
+            st.subheader(f"Taps taken: `{steps[0]}`")
+            st.subheader(f"Failsafe Reached: `{CONST.FAILSAFE_TEXT[failsafes[0]]}`")
         else:
             st.subheader(f"Results from {n} simulations.")
-            st.write(f"Mean: {np.mean(results):,.2f}")
-            st.write(f"Std: {np.std(results):,.2f}")
-            st.write(f"Min: {np.min(results):,.2f}")
-            st.write(f"Max: {np.max(results):,.2f}")
+            st.write(f"Mean: {np.mean(results):,.2f} opals")
+            st.write(f"Std: {np.std(results):,.2f} opals")
+            st.write(f"Min: {np.min(results):,.2f} opals")
+            st.write(f"Max: {np.max(results):,.2f} opals")
 
             st.divider()
 
