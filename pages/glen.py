@@ -144,7 +144,7 @@ def enhance_buttons(gold, taps, catalysts, current_amp, all_amps, current_fs, ca
 
     with col1:
         if not complete:
-            if st.button(f"Enhance ({get_prob(enhancement_level, catalyst_usage, current_fs) * 100:,.0f}%)", type="primary"):
+            if st.button(f"Enhance ({get_prob(enhancement_level, catalyst_usage, current_fs) * 100:,.0f}%)", type="primary", use_container_width=True):
                 with st.spinner("Enhancing..."):
                     time.sleep(0.6)
                     gold, taps, catalysts, current_amp, all_amps, current_fs, complete, notifs = enhance(
@@ -155,7 +155,7 @@ def enhance_buttons(gold, taps, catalysts, current_amp, all_amps, current_fs, ca
 
     with col2:
         if not complete and current_amp != len(amps) and st.session_state["glen_current_amp"] < symbol_int_map[multi_until]:
-            if st.button(f"Enhance 10x ({get_prob(enhancement_level, catalyst_usage, current_fs) * 100:,.0f}%)", type="primary"):
+            if st.button(f"Enhance 10x ({get_prob(enhancement_level, catalyst_usage, current_fs) * 100:,.0f}%)", type="primary", use_container_width=True):
                 with st.spinner("Enhancing..."):
                     time.sleep(0.6)
                     for i, _ in enumerate(range(10)):
@@ -172,7 +172,7 @@ def enhance_buttons(gold, taps, catalysts, current_amp, all_amps, current_fs, ca
 
 
     with col3:
-        if st.button("Reset", type="secondary"):
+        if st.button("Reset", type="secondary", use_container_width=True):
             gold = 0
             taps = 0
             catalysts = { "No Catalyst": 0, "Catalyst": 0, "Stable Catalyst": 0, "Potent Catalyst": 0 }
