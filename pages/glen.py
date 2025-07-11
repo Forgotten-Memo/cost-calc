@@ -118,6 +118,9 @@ def enhance(gold, taps, catalysts, current_amp, all_amps, current_fs, complete=F
             notif.append({"error": "Failed. Try again! " + f"`{amp_symbol_gen(current_amp, CONST.AMP_THRESHOLDS[enhancement_level])}` -> `{amp_symbol_gen(0, CONST.AMP_THRESHOLDS[enhancement_level])}`"})
         current_amp = 0
         logger.info(f"Failed! {all_amps}, {current_amp}, {rng}" )
+
+    if current_amp == len(amps):
+        notif.append({"info": "You have reached max amplifications. Next attempt is a failsafe attempt."})
     
     return gold, taps, catalysts, current_amp, all_amps, current_fs, complete, notif
 
@@ -148,8 +151,6 @@ def enhance_buttons(gold, taps, catalysts, current_amp, all_amps, current_fs, ca
         st.session_state["notification"] = notifs
         st.rerun()
 
-
-
     with col1:
         if not complete:
             if st.button(f"Enhance ({get_prob(enhancement_level, catalyst_usage, current_fs) * 100:,.0f}%)", type="primary", use_container_width=True):
@@ -168,14 +169,14 @@ def enhance_buttons(gold, taps, catalysts, current_amp, all_amps, current_fs, ca
                     time.sleep(0.6)
                     for i, _ in enumerate(range(10)):
                         if current_amp == symbol_int_map[multi_until]:
-                            notifs = [{"success": f"Reached the targetted amp after {i} steps.\nStopping multi-enhancement early.\n\nCurrent amp: `{amp_symbol_gen(current_amp, CONST.AMP_THRESHOLDS[enhancement_level])}`"}]
+                            notifs = [{"success": f"Reached the targetted amp after {i} steps.\nStopping multi-enhancement early.\n\nCurrent amp: `{amp_symbol_gen(current_amp, CONST.AMP_THRESHOLDS[enhancement_level])}`"}] + notif
                             break
 
                         gold, taps, catalysts, current_amp, all_amps, current_fs, complete, notif = enhance(
                             gold, taps, catalysts, current_amp, all_amps, current_fs, complete,
                             single=False
                         )
-                        notifs = [{"info": f"Enhanced `{i + 1}` times. Current amp: `{amp_symbol_gen(current_amp, CONST.AMP_THRESHOLDS[enhancement_level])}`"}] 
+                        notifs = [{"info": f"Enhanced `{i + 1}` times. Current amp: `{amp_symbol_gen(current_amp, CONST.AMP_THRESHOLDS[enhancement_level])}`"}] + notif
                 refresh()
 
 
