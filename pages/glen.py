@@ -28,7 +28,7 @@ def get_prob(enhancement_level, catalyst_usage, current_failsafe):
     
 def amp_symbol_gen(current_amp, max_amp):
     """Generates a string of amp symbols based on current and max amps."""
-    return '★' * current_amp + '☆' * (max_amp - current_amp)
+    return '★' * max(current_amp, 0) + '☆' * max((max_amp - current_amp),0)
 
 CATALYST_COST_MAP = {
     "No Catalyst": 0,
@@ -91,28 +91,32 @@ def enhance(gold, taps, catalysts, current_amp, all_amps, current_fs, complete=F
 
         if current_fs == 6 or rng <= CONST.FAILSAFES[enhancement_level][current_fs]:
             complete = True
-            return gold, taps, catalysts, current_amp, all_amps, current_fs, complete
+            return gold, taps, catalysts, current_amp, all_amps, current_fs, complete, notif
         else:
             current_fs += 1
             notif.append({"error": "Oops. It's a Failsafe!"})
-            return gold, taps, catalysts, current_amp, all_amps, current_fs, complete
+            return gold, taps, catalysts, current_amp, all_amps, current_fs, complete, notif
     
     if all_amps[current_amp] == 6:
         all_amps[current_amp] = 0
-        current_amp += 1
+        
         if single:
-            notif.append({"success": "Success! (it was pity though)" + f"`{amp_symbol_gen(current_amp - 1, CONST.AMP_THRESHOLDS[enhancement_level])}` -> `{amp_symbol_gen(current_amp, CONST.AMP_THRESHOLDS[enhancement_level])}`"})
+            notif.append({"success": "Success! (it was pity though)" + f"`{amp_symbol_gen(current_amp, CONST.AMP_THRESHOLDS[enhancement_level])}` -> `{amp_symbol_gen(current_amp+1, CONST.AMP_THRESHOLDS[enhancement_level])}`"})
+        current_amp += 1
+        logger.info(f"Success (pity)! {all_amps}, {current_amp}, {rng}")
     elif rng <= CONST.CATALYST_PROB_MAP[catalyst_usage]:
         all_amps[current_amp] = 0
-        current_amp += 1
+        
         if single:
-            notif.append({"success": "Success! " + f"`{amp_symbol_gen(current_amp - 1, CONST.AMP_THRESHOLDS[enhancement_level])}` -> `{amp_symbol_gen(current_amp, CONST.AMP_THRESHOLDS[enhancement_level])}`"})
+            notif.append({"success": "Success! " + f"`{amp_symbol_gen(current_amp, CONST.AMP_THRESHOLDS[enhancement_level])}` -> `{amp_symbol_gen(current_amp+1, CONST.AMP_THRESHOLDS[enhancement_level])}`"})
+        current_amp += 1
         logger.info(f"Success! {all_amps}, {current_amp}, {rng}")
     else:
         all_amps[current_amp] += 1
-        current_amp = 0
+        
         if single:
-            notif.append({"error": "Failed. Try again!" + f"`{amp_symbol_gen(current_amp - 1, CONST.AMP_THRESHOLDS[enhancement_level])}` -> `{amp_symbol_gen(0, CONST.AMP_THRESHOLDS[enhancement_level])}`"})
+            notif.append({"error": "Failed. Try again! " + f"`{amp_symbol_gen(current_amp, CONST.AMP_THRESHOLDS[enhancement_level])}` -> `{amp_symbol_gen(0, CONST.AMP_THRESHOLDS[enhancement_level])}`"})
+        current_amp = 0
         logger.info(f"Failed! {all_amps}, {current_amp}, {rng}" )
     
     return gold, taps, catalysts, current_amp, all_amps, current_fs, complete, notif
@@ -130,6 +134,8 @@ def reset():
 def enhance_buttons(gold, taps, catalysts, current_amp, all_amps, current_fs, catalyst_usage, multi_until, complete):
     col1, col2, col3 = st.columns([1, 2, 2])
     notifs = []
+    if complete:
+        st.session_state["notification"] = [{"success": f"Congratulations! You have successfully enhanced from  +`{enhancement_level}` to +`{enhancement_level + 1}`!"}]
 
     def refresh():
         st.session_state["glen_gold"] = gold
@@ -141,6 +147,8 @@ def enhance_buttons(gold, taps, catalysts, current_amp, all_amps, current_fs, ca
         st.session_state["glen_complete"] = complete
         st.session_state["notification"] = notifs
         st.rerun()
+
+
 
     with col1:
         if not complete:
