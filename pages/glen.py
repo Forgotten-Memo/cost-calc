@@ -41,7 +41,16 @@ CATALYST_COST_MAP = {
 
 enhancement_level_select = st.selectbox(label="Enhancement Level", options=[f"{i}" for i in range(15,25)], index=st.session_state["enhancement_level"] - 15)
 enhancement_level = int(enhancement_level_select)
-st.session_state["enhancement_level"] = enhancement_level
+if enhancement_level != st.session_state["enhancement_level"]:
+    st.session_state["glen_taps"] = 0
+    st.session_state["glen_gold"] = 0
+    st.session_state["glen_failsafe"] = 0
+    st.session_state['glen_catalysts'] = { "No Catalyst": 0, "Catalyst": 0, "Stable Catalyst": 0, "Potent Catalyst": 0 }
+    st.session_state["glen_amps"] = [0] * CONST.AMP_THRESHOLDS[enhancement_level]
+    st.session_state["glen_current_amp"] = 0
+    st.session_state["glen_complete"] = False
+    st.session_state["notification"] = [{"info": f"Enhancement level changed to {enhancement_level}"}]
+    st.session_state["enhancement_level"] = enhancement_level
 
 ### Calculate / Set Attempt Cost
 st.markdown("Attempt Cost")
