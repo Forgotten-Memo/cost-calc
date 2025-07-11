@@ -21,10 +21,10 @@ st.session_state.setdefault("notification", [])
 
 def get_prob(enhancement_level, catalyst_usage, current_failsafe):
     if st.session_state["glen_current_amp"] == len(amps):
-        return CONST.CATALYST_MODIFIERS.get(catalyst_usage, lambda x: x)(CONST.FAILSAFES[enhancement_level][current_failsafe])
+        return min(CONST.CATALYST_MODIFIERS.get(catalyst_usage, lambda x: x)(CONST.FAILSAFES[enhancement_level][current_failsafe]), 1)
     else:
 
-        return CONST.CATALYST_PROB_MAP[catalyst_usage]
+        return min(CONST.CATALYST_PROB_MAP[catalyst_usage], 1)
     
 def amp_symbol_gen(current_amp, max_amp):
     """Generates a string of amp symbols based on current and max amps."""
@@ -222,20 +222,16 @@ total_cost = st.session_state['glen_gold'] / 1000000 * st.session_state['gold_pr
 
 with st.container(border=True):
     st.write(f"Current Failsafe: `{st.session_state['glen_failsafe']}`")
-    if st.session_state["glen_complete"]:
-        # st.success(f"Congratulations! You have successfully enhanced from  +`{st.session_state['enhancement_level']}` to +`{st.session_state['enhancement_level'] + 1}`!")
-        st.write(f"Total Opals Spent: `{total_cost:,.2f}`")
-        st.stop()
-    elif st.session_state['glen_current_amp'] == len(st.session_state['glen_amps']):  
-        st.write(f"Current Amps: `{'★' * st.session_state['glen_current_amp']}`")
-        # st.info("You have successfully reached max amplifications. Next attempt is a failsafe attempt.")
-    else:
-        st.write(f"Current Amps: `{'★' * st.session_state['glen_current_amp'] + '☆' * (CONST.AMP_THRESHOLDS[enhancement_level] -  st.session_state['glen_current_amp'])} -  {st.session_state['glen_amps'][st.session_state['glen_current_amp']]}/6`")
-        with st.expander("Amp Status", expanded=False):
-            st.write(f"Amp Status:")
-            for i, amp in enumerate(st.session_state["glen_amps"] ):
-                st.markdown(f"{'★' * i + '☆' * (len(amps) - i)} - {amp}/6")
 
+    if not st.session_state["glen_complete"]:
+        if st.session_state['glen_current_amp'] == len(st.session_state['glen_amps']):  
+            st.write(f"Current Amps: `{'★' * st.session_state['glen_current_amp']}`")
+        else:
+            st.write(f"Current Amps: `{'★' * st.session_state['glen_current_amp'] + '☆' * (CONST.AMP_THRESHOLDS[enhancement_level] -  st.session_state['glen_current_amp'])} -  {st.session_state['glen_amps'][st.session_state['glen_current_amp']]}/6`")
+            with st.expander("Amp Status", expanded=False):
+                st.write(f"Amp Status:")
+                for i, amp in enumerate(st.session_state["glen_amps"] ):
+                    st.markdown(f"{'★' * i + '☆' * (len(amps) - i)} - {amp}/6")
 
 with st.container(border=True):
     st.write(f"Total Cost: `{total_cost:,.2f}` opals")
