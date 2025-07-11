@@ -1,6 +1,16 @@
-
+import streamlit as st
 import numpy as np
 from typing import List, Callable
+import constants as CONST
+
+CATALYST_COST_MAP = {
+    "No Catalyst": 0,
+    "Catalyst": st.session_state.get('catalyst_price', 100),
+    "Stable Catalyst": st.session_state.get('catalyst_price', 100) * 2,
+    "Potent Catalyst": st.session_state.get('potent_catalyst_price', 800),
+    "3 Star Catalyst": st.session_state.get('potent_catalyst_price', 800) * 10,
+    "4 Star Catalyst": st.session_state.get('potent_catalyst_price', 800) * 40
+}
 
 def expected_frac(p=0.20):
     """
@@ -54,10 +64,11 @@ def gen_matrix(probs: list[float], apply_expected_frac: bool = True):
     P[chain_length][chain_length] = 1 # absorbing state
     return P
 
-def calc_cost(raw_probs: List[float], cost: List[float | int]):
+def calc_cost(catalyst_selected: List[str], base_cost: int, CATALYST_COST_MAP: dict):
     """
     Calculates cost given a set of raw probabilities and costs.
     """
+    raw_probs = [CONST.CATALYST_PROB_MAP[catalyst] for catalyst in catalyst_selected]
     P = gen_matrix(raw_probs)
 
     absorbing = [i for i in range(len(P)) if P[i][i] == 1 and all(P[i][j] == 0 for j in range(len(P)) if j != i)]
@@ -68,5 +79,11 @@ def calc_cost(raw_probs: List[float], cost: List[float | int]):
     I = np.eye(Q.shape[0])
     M = np.linalg.inv(I - Q)
 
-    total_cost = sum([M[0][i] * cost[i] for i in range(len(M[0]))])
-    return total_cost
+    total_cost = sum([M[0][i] * (CATALYST_COST_MAP[catalyst] + base_cost) for i, catalyst in enumerate(catalyst_selected)])
+    taps = sum(M[0]) 
+    catalyst_usage = {}
+    for i, catalyst in enumerate(catalyst_selected):
+        catalyst_usage[catalyst] = catalyst_usage.get(catalyst, 0) + M[0][i] 
+    
+
+    return total_cost, taps, catalyst_usage
