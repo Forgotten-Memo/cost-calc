@@ -88,7 +88,7 @@ def optimise_tab(base_cost, enhancement_level):
     st.subheader("Optimal Catalyst Usage")
     st.write(f"Average Value: `{min_cost:,.2f}` Opals")
     with st.container(border=True):
-        st.write(f"Average Taps: `{min_taps:,.0f}` --- (`{min_taps * base_cost * 1000000 / st.session_state['gold_market_price']:,.0f}` gold)" )
+        st.write(f"Average Taps: `{min_taps:,.0f}` --- (`{min_taps * base_cost * 1000000 / st.session_state['gold_price']:,.0f}` gold)" )
         for catalyst, usage in catalyst_usage.items():
             if catalyst != "No Catalyst":
                 st.write(f"`{usage:.0f}`x {catalyst}")
@@ -116,7 +116,6 @@ with st.expander(f"Calculate cost of each tap", expanded=True):
     attempt_cost = gold_attempt_cost + parts_attempt_cost
     st.write(f"Total Cost Per 1-tap: `{attempt_cost:,.0f}` gold")
 
-st.session_state['gold_market_price'] = st.number_input(label="Opal cost per 1m gold", value=200.0)
-base_cost = attempt_cost / 1000000 * st.session_state['gold_market_price']
+base_cost = attempt_cost / 1000000 * st.session_state['gold_price']
 
 optimise_tab(base_cost, enhancement_level)
