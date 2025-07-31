@@ -41,12 +41,13 @@ expectation_map[12] = 20
 expectation_map[13] = 25
 expectation_map[14] = 40
 expectation_map[15] = 105
+
 for i in range(16, 26):
-    expectation_map[i] = 3.9 ** (CONST.AMP_THRESHOLDS[i-1]) / utils.cumulative_prob(utils.modified_prob(CONST.FAILSAFES[i-1], lambda x: x + 0.07)) + expectation_map[i-1]
+    expectation_map[i] = 4 ** (CONST.AMP_THRESHOLDS[i-1]) / utils.cumulative_prob(utils.modified_prob(CONST.FAILSAFES[i-1], lambda x: min(x + 0.04, 1.00))) + expectation_map[i-1]
 
 expected_taps = sum(expectation_map[i] for i in [weapon, helmet, breastplate, gauntlets, pants, boots,
     necklace, bracers, ring, talisman, seal])
-stdev = sum((expectation_map[i] / 1.5) ** 2 for i in [weapon, helmet, breastplate, gauntlets, pants, boots,
+stdev = sum((expectation_map[i] / 1.2) ** 2 for i in [weapon, helmet, breastplate, gauntlets, pants, boots,
     necklace, bracers, ring, talisman, seal]) ** 0.5
 
 percentile = norm.cdf(total_taps, loc=expected_taps, scale=stdev)
@@ -54,8 +55,8 @@ percentile = norm.cdf(total_taps, loc=expected_taps, scale=stdev)
 luck_status = "Very Unlucky"
 luck_thresholds = {
     "Very Lucky": 0.90,
-    "Lucky": 0.75,
-    "Neutral": 0.25,
+    "Lucky": 0.70,
+    "Neutral": 0.30,
     "Unlucky": 0.10,
 }
 
