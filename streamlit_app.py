@@ -12,6 +12,7 @@ pages = {
         st.Page("pages/whale.py", title="Whale Enhancement (+15 onwards)"),
         st.Page("pages/dolphin.py", title="Dolphin Enhancement (+15 Hell)"),
         st.Page("pages/glen.py", title="Glen Casino (BETA)"),
+        st.Page("pages/luck_calc.py", title="Luck Scorer (BETA)"),
     ],
 }
 
