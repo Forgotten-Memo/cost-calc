@@ -47,17 +47,19 @@ for i in range(16, 26):
 
 expected_taps = sum(expectation_map[i] for i in [weapon, helmet, breastplate, gauntlets, pants, boots,
     necklace, bracers, ring, talisman, seal])
-stdev = sum((expectation_map[i] / 1.2) ** 2 for i in [weapon, helmet, breastplate, gauntlets, pants, boots,
+stdev = sum((expectation_map[i] * 0.67) ** 2 for i in [weapon, helmet, breastplate, gauntlets, pants, boots,
     necklace, bracers, ring, talisman, seal]) ** 0.5
 
 percentile = norm.cdf(total_taps, loc=expected_taps, scale=stdev)
 
-luck_status = "Very Unlucky"
+luck_status = "My Condolences"
 luck_thresholds = {
-    "Very Lucky": 0.90,
-    "Lucky": 0.70,
-    "Neutral": 0.30,
-    "Unlucky": 0.10,
+    "RNGesus": 0.95,
+    "Very Lucky": 0.85,
+    "Lucky": 0.65,
+    "Neutral": 0.35,
+    "Unlucky": 0.15,
+    "Very Unlucky": 0.05
 }
 
 with st.container(border=True):
