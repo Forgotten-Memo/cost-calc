@@ -7,7 +7,7 @@ import logging
 st.title("Luck Scorer")
 st.info("A fun scorer that gauges how lucky you are based on your total number of taps and enhancement levels. Thresholds are quite arbitrary for now and this is just for fun.\n\n"\
         "To find your total taps, go to character icon > click manual on bottom left > go to life > look at enhancement section\n\n"\
-        "This is an early release that is only intended for used by those with resonance > 165 and does not account for failsafes or current amp progress.")
+        "This is an early release that is only intended for used by those with resonance > 165 and does not account for failsafes or current amp progress. Esp. at lower levels, doing silly stuff like enhancing white gear to 'build pity' will skew scores. Assumes conservative catalyst usage.")
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
