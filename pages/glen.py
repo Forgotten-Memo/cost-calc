@@ -23,7 +23,6 @@ def get_prob(enhancement_level, catalyst_usage, current_failsafe):
     if st.session_state["glen_current_amp"] == len(amps):
         return min(CONST.CATALYST_MODIFIERS.get(catalyst_usage, lambda x: x)(CONST.FAILSAFES[enhancement_level][current_failsafe]), 1)
     else:
-
         return min(CONST.CATALYST_PROB_MAP[catalyst_usage], 1)
     
 def amp_symbol_gen(current_amp, max_amp):
