@@ -43,7 +43,7 @@ expectation_map[14] = 40
 expectation_map[15] = 105
 
 for i in range(16, 26):
-    expectation_map[i] = 4 ** (CONST.AMP_THRESHOLDS[i-1]) / utils.cumulative_prob(utils.modified_prob(CONST.FAILSAFES[i-1], lambda x: min(x + 0.04, 1.00))) + expectation_map[i-1]
+    expectation_map[i] = (3.9 + min((20-i) * 0.075, 0)) ** (CONST.AMP_THRESHOLDS[i-1]) / utils.cumulative_prob(utils.modified_prob(CONST.FAILSAFES[i-1], lambda x: min(x + 0.04, 1.00))) + expectation_map[i-1]
 
 expected_taps = sum(expectation_map[i] for i in [weapon, helmet, breastplate, gauntlets, pants, boots,
     necklace, bracers, ring, talisman, seal])
