@@ -15,16 +15,16 @@ PROB_CATALYST_MAP = {
 }
 
 TAP_COST = {
-    15: 220000,
-    16: 250000,
-    17: 270000,
-    18: 200000,
+    15: 200000,
+    16: 220000,
+    17: 250000,
+    18: 270000,
     19: 280000,
     20: 290000,
     21: 350000,
     22: 450000,
     23: 850000,
-    24: 1250000
+    24: 1700000
 }
 
 SPARE_PARTS_COST = {
@@ -37,7 +37,7 @@ SPARE_PARTS_COST = {
     21: [0, 20, 5],
     22: [0, 25, 7],
     23: [0, 35, 10],
-    24: [0, 50, 20]
+    24: [0, 50, 15]
 }
 
 
@@ -55,6 +55,8 @@ CATALYST_MODIFIERS = {
     "Catalyst": lambda x: min(x * 1.5, x + 0.04),
     "Stable Catalyst": lambda x: min(x * 1.5, x + 0.04),
     "Potent Catalyst": lambda x: min(x * 2.0, x + 0.07),
+    "3 Star Catalyst": lambda x: 1,
+    "4 Star Catalyst": lambda x: 1
 }
 
 FAILSAFES = {
@@ -69,7 +71,6 @@ FAILSAFES = {
     23: [0.04, 0.08, 0.12, 0.18, 0.25, 0.5, 1],
     24: [0.02, 0.04, 0.08, 0.12, 0.25, 0.5, 1]
 }
-
 
 FAILSAFE_TEXT = {
     0: "No Failsafe!",

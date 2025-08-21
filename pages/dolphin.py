@@ -1,9 +1,7 @@
-from typing import List, Tuple
+from typing import List
 import streamlit as st
 import itertools
-import utils
 import numpy as np
-import plotly.express as px
 import pandas as pd
 from constants import CATALYST_PROB_MAP
 

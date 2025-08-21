@@ -1,7 +1,7 @@
 import streamlit as st
 from scipy.stats import norm
 import constants as CONST 
-import utils
+import utils.utils as utils
 import logging
 
 st.title("Luck Scorer")

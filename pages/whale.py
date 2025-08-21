@@ -1,11 +1,13 @@
 from typing import List, Tuple
 import streamlit as st
 import itertools
-import utils
+import utils.utils as utils
+import utils.absolute_policy as absolute_policy
 import constants as CONST
 import numpy as np
 import plotly.express as px
 import pandas as pd
+
 
 CATALYST_COST_MAP = {
     "No Catalyst": 0,
@@ -65,7 +67,7 @@ def get_sim_results(base_cost: int, catalyst_selected: List[str], n: int = 10000
                 steps += 1
             
             rng2 = np.random.random()
-            total_cost += CATALYST_COST_MAP[final_catalyst]
+            total_cost += CATALYST_COST_MAP[final_catalyst] + base_cost # Failsafe tap
             catalysts_used[final_catalyst] = catalysts_used.get(final_catalyst, 0) + 1
 
             if rng2 <= failsafe_probs[failsafe]:
@@ -124,7 +126,7 @@ def optimise_tab(chain_length, base_cost):
 
     min_key, min_cost, min_taps, catalyst_usage = optimise(base_cost, chain_length, CATALYST_COST_MAP)
 
-    st.subheader("Optimal Catalyst Usage")
+    st.subheader("Simplified Optimal Policy")
     min_final_catalyst, min_overall_cost, avg_failsafes = None, float('inf'), 0
     for final_catalyst in ["No Catalyst", "Catalyst", "Potent Catalyst"]:
         modifier = CONST.CATALYST_MODIFIERS.get(final_catalyst, lambda x: x)
@@ -138,10 +140,11 @@ def optimise_tab(chain_length, base_cost):
     for k, v in catalyst_usage.items():
         catalyst_usage[k] = v * avg_failsafes
     catalyst_usage[min_final_catalyst] = catalyst_usage.get(min_final_catalyst, 0) + avg_failsafes
+    min_overall_cost += avg_failsafes * (base_cost + CATALYST_COST_MAP[min_final_catalyst])
 
     st.write(f"Average Value: `{min_overall_cost:,.2f}` Opals")
     with st.container(border=True):
-        st.write(f"Average Taps: `{min_taps * avg_failsafes:,.0f}` --- (`{min_taps * avg_failsafes * base_cost * 1000000 / st.session_state['gold_price']:,.0f}` gold)" )
+        st.write(f"Average Taps: `{(min_taps + 1)* avg_failsafes:,.0f}` --- (`{(min_taps + 1) * avg_failsafes * base_cost * 1000000 / st.session_state['gold_price']:,.0f}` gold)" )
         for catalyst, usage in catalyst_usage.items():
             if catalyst != "No Catalyst":
                 st.write(f"{catalyst}: `{usage:.2f}` ")
@@ -279,8 +282,27 @@ for k, v in thresholds.items():
 tab1, tab2 = st.tabs(["Optimizer", "Simulator"])
 
 with tab1:
-    optimise_tab(chain_length, base_cost)
-    st.warning("Disclaimer: For simplicity, this optimisation assumes that you will always use the same catalyst for each stage (e.g. always using Potent Catalyst at amp 4). In reality, there may be cases you will not want to do so, e.g. when you are already at 6/6 amplification and have a guarantee regardless of whether the catalyst is used. Nevertheless, the 'improvement' in cost is generally not significant in magnitude and the results should still give a decent representation of the average costs.")
+    advanced_mode = st.toggle("Detailed Breakdown", False, help="Advanced mode provides the absolute optimal policy for each step, while non-advanced mode provides a general policy for each amplification.")
+    if advanced_mode:
+        st.info("Special thanks to @wu6551 for contributing base code for the detailed optimal policy breakdown.")
+        total_cost, policy, gold_tap_cost, expected_catalyst, expected_potent = absolute_policy.get_min_cost(enhancement_level, attempt_cost, st.session_state['gold_price'], CATALYST_COST_MAP)
+        st.subheader("Detailed Optimal Policy")
+        st.write(f"Average Opal Value: `{total_cost:,.2f}` opals ")
+        with st.container(border=True):
+            st.write(f"Average Taps: `{gold_tap_cost / attempt_cost:,.0f}` --- (`{gold_tap_cost:,.0f}` gold)")
+            if expected_catalyst > 0:
+                st.write(f"Catalyst: `{expected_catalyst:,.1f}`")
+            if expected_potent > 0:
+                st.write(f"Potent Catalyst: `{expected_potent:,.1f}`")
+            
+        with st.expander("Detailed Policy"):
+            st.write(policy)
+    else:
+        st.warning("Disclaimer: This is a simplified policy. This optimisation assumes that you will always use the same catalyst for each stage (e.g. always using Potent Catalyst at amp 4). In reality, there may be cases you will not want to do so, e.g. when you are already at 6/6 amplification and have a guarantee regardless of whether the catalyst is used. Use the detailed policy generator for more precise recommendations at each step.")
+
+        optimise_tab(chain_length, base_cost)
+        
+
 
 with tab2:
     simulate_tab(chain_length, base_cost)
