@@ -1,6 +1,7 @@
+from email import policy
 import numpy as np
 from itertools import product
-from typing import Literal, List
+from typing import Literal, Tuple
 import streamlit as st
 import constants as CONST
 
@@ -100,10 +101,40 @@ def get_probability_matrix(current_level: int):
                 P[(action, i, f)] = adjusted_probability
     return P
 
+def replace_stars(key: Tuple[int, int], n: int):
+    """
+    Replaces policy key with stars.
+
+    Args:
+        key Tuple[int, int]: The key representing the amplification and pity counter.
+        n (int): The total number of amplifications.
+    """
+    a, f = key
+    black_stars = "★" * a
+    white_stars = "☆" * (n-a)
+
+    return f'{black_stars}{white_stars} ({f}/6)'
+
 def get_min_cost(current_level: int, cost_per_tap_in_gold: int, gems_per_1m: float, catalyst_cost_map: dict, reference_frame: str = "OPALS"):
-    # X(i, i+1, f_i)
-    # X stores the cost to go from i -> i+1 given that the failsafe level at i is f_i
-    
+    """
+    Calculates the minimum expected cost and optimal policy for progressing through amplification levels
+    using catalysts and potent catalysts, considering probabilities of success and failure at each step.
+
+    Args:
+        current_level (int): The current amplification level.
+        cost_per_tap_in_gold (int): The cost per tap in gold.
+        gems_per_1m (float): The number of gems per 1 million gold.
+        catalyst_cost_map (dict): A mapping of catalyst types to their OPALS cost.
+        reference_frame (str, optional): The reference frame for cost calculation ("OPALS" or "GOLD"). Defaults to "OPALS".
+
+    Returns:
+        total_cost (float): The minimum expected total cost in OPALS.
+        policy (dict): The optimal action policy for each (amplification level, failsafe level) state.
+        gold_tap_cost (float): The expected gold tap cost based on the reference frame.
+        pink_cost (float): The expected number of catalysts used.
+        potent_cost (float): The expected number of potent catalysts used.
+    """
+
     n = CONST.AMP_THRESHOLDS[current_level]
     amp_levels = list(range(n+1))
     P = get_probability_matrix(current_level)
@@ -180,6 +211,7 @@ def get_min_cost(current_level: int, cost_per_tap_in_gold: int, gems_per_1m: flo
         total_opals_used_for_catalyst = pink_cost  * catalyst_cost_map['Catalyst'] + potent_cost * catalyst_cost_map['Potent Catalyst']
         gold_tap_cost = (total_cost - total_opals_used_for_catalyst) / gems_per_1m * 1000000
 
-    policy = {str(k): v for k, v in sorted(policy.items(), key=lambda item: str(item[0]))}
+    policy = {replace_stars(k, n): v for k, v in sorted(policy.items(), key=lambda item: str(item[0]))}
     return total_cost, policy, gold_tap_cost, pink_cost, potent_cost
+
 

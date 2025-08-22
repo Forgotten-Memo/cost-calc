@@ -299,7 +299,6 @@ with tab1:
             st.write(policy)
     else:
         st.warning("Disclaimer: This is a simplified policy. This optimisation assumes that you will always use the same catalyst for each stage (e.g. always using Potent Catalyst at amp 4). In reality, there may be cases you will not want to do so, e.g. when you are already at 6/6 amplification and have a guarantee regardless of whether the catalyst is used. Use the detailed policy generator for more precise recommendations at each step.")
-
         optimise_tab(chain_length, base_cost)
         
 
