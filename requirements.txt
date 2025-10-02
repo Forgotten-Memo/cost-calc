@@ -3,3 +3,5 @@ numpy==2.3.0
 plotly
 pandas
 scipy
+joblib
+scikit-learn~=1.6.1

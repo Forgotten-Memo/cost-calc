@@ -33,7 +33,7 @@ def get_sim_results(base_cost: int, catalyst_selected: List[str], n: int = 10000
     raw_probs = [CONST.CATALYST_PROB_MAP[c] for c in catalyst_selected.values()]
     costs = [CATALYST_COST_MAP[c] + base_cost for c in catalyst_selected.values()]
     
-    for i in range(n):
+    for _ in range(n):
         total_cost = 0
         failsafe = 0
         steps = 0

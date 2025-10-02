@@ -1,7 +1,6 @@
-from email import policy
 import numpy as np
 from itertools import product
-from typing import Literal, Tuple
+from typing import List, Literal, Tuple
 import streamlit as st
 import constants as CONST
 
@@ -78,30 +77,42 @@ def get_possible_actions(current_amp: int, n: int):
 
     return tuple(actions_possible)
 
-def get_probability_matrix(current_level: int):
+def get_probability_matrix(current_level: int, hidden_rates: bool = True):
     """
     Generate the probability matrix for a given enhancement level and number of enhancements.
     Args:
         current_level (int): The current enhancement level.
+        hidden_rates (bool): Whether to account for hidden rates at 4/6 and 5/6 amplification.
     """
     # Define P_a(fail, s)
     P = {}
-    n = CONST.AMP_THRESHOLDS[current_level]
-    amp_levels = list(range(n+1))
-    for i in amp_levels:
-        for f in range(7):
+    AMAX = CONST.AMP_THRESHOLDS[current_level]
+    for f in range(7):
+        for amp in range(AMAX+1):
             # Handle success probability for final amp level
-            if i == amp_levels[-1]:
+            if amp == AMAX:
                 base_success_chance = CONST.FAILSAFES[current_level][f]
+                possible_actions = get_possible_actions(amp, AMAX)
+                for action in possible_actions:
+                    adjusted_probability = CONST.CATALYST_MODIFIERS[action](base_success_chance)
+                    P[(action, f, amp, 0)] = adjusted_probability
             else:
-                base_success_chance = 0.2
-            possible_actions = get_possible_actions(i, f)
-            for action in possible_actions:
-                adjusted_probability = min(CONST.CATALYST_MODIFIERS[action](base_success_chance),1.0)
-                P[(action, i, f)] = adjusted_probability
+                for pity in range(7):
+                    if pity == 6:
+                        base_success_chance = 1.0
+                    elif hidden_rates and (pity in (4, 5)):
+                        base_success_chance = 0.5
+                    else:
+                        base_success_chance = 0.2
+
+                    possible_actions = get_possible_actions(amp, AMAX)
+                    for action in possible_actions:
+                        adjusted_probability = CONST.CATALYST_MODIFIERS[action](base_success_chance)
+                        P[(action, f, amp, pity)] = adjusted_probability
+
     return P
 
-def replace_stars(key: Tuple[int, int], n: int):
+def replace_stars(key: Tuple[int, int] | int, enhancement_level: int) -> str:
     """
     Replaces policy key with stars.
 
@@ -109,109 +120,168 @@ def replace_stars(key: Tuple[int, int], n: int):
         key Tuple[int, int]: The key representing the amplification and pity counter.
         n (int): The total number of amplifications.
     """
-    a, f = key
-    black_stars = "★" * a
-    white_stars = "☆" * (n-a)
+    n = CONST.AMP_THRESHOLDS[enhancement_level]
+    if isinstance(key, int):
+        a = key
+        black_stars = "★" * a
+        white_stars = "☆" * (n-a)
+        return f'{black_stars}{white_stars}'
+    else:
+        a, p = key
+        black_stars = "★" * a
+        white_stars = "☆" * (n-a)
+        if a == n:
+            return f'{black_stars} → +{enhancement_level + 1}'
 
-    return f'{black_stars}{white_stars} ({f}/6)'
+        return f'{black_stars}{white_stars} ({p}/6)'
 
-def get_min_cost(current_level: int, cost_per_tap_in_gold: int, gems_per_1m: float, catalyst_cost_map: dict, reference_frame: str = "OPALS"):
-    """
-    Calculates the minimum expected cost and optimal policy for progressing through amplification levels
-    using catalysts and potent catalysts, considering probabilities of success and failure at each step.
+def process_policy(policy: np.ndarray, enhancement_level: int):
+    updated_policy = {CONST.FAILSAFE_TEXT[fs]: {} for fs in range(7)}
+    for k, v in sorted(list(np.ndenumerate(policy)), key=lambda item: str(item[0])):
+        f, a, p = k
+        if v:
+            updated_policy[CONST.FAILSAFE_TEXT[f]][replace_stars((a, p), enhancement_level)] = v
+    return updated_policy
 
-    Args:
-        current_level (int): The current amplification level.
-        cost_per_tap_in_gold (int): The cost per tap in gold.
-        gems_per_1m (float): The number of gems per 1 million gold.
-        catalyst_cost_map (dict): A mapping of catalyst types to their OPALS cost.
-        reference_frame (str, optional): The reference frame for cost calculation ("OPALS" or "GOLD"). Defaults to "OPALS".
+def get_success_path(start_state: Tuple[int, int, int], n: int) -> List[Tuple[int, int, int]]:
+    f, a, p = start_state
+    path = [(f,a,p)]
+    while a < n:
+        a += 1
+        path.append((f, a, 0))
+    
+    return path
 
-    Returns:
-        total_cost (float): The minimum expected total cost in OPALS.
-        policy (dict): The optimal action policy for each (amplification level, failsafe level) state.
-        gold_tap_cost (float): The expected gold tap cost based on the reference frame.
-        pink_cost (float): The expected number of catalysts used.
-        potent_cost (float): The expected number of potent catalysts used.
-    """
 
-    n = CONST.AMP_THRESHOLDS[current_level]
-    amp_levels = list(range(n+1))
-    P = get_probability_matrix(current_level)
+def get_min_cost(current_level: int, cost_per_tap_in_gold: int, gems_per_1m: float, catalyst_cost_map: dict, reference_frame: str = "OPALS", hidden_rates: bool = True, start_state: Tuple[int, int, int]=(0,0,0)):
+    AMAX = CONST.AMP_THRESHOLDS[current_level]
+    PMAX = 6
+    FMAX = 6
+    P = get_probability_matrix(current_level, hidden_rates)
     R = get_R(cost_per_tap_in_gold, gems_per_1m, catalyst_cost_map, reference_frame)
 
-    X = {} # dynamic dict
-    policy = {}
-    expected_catalyst = {}
-    expected_potent = {}
-    for i in amp_levels:
-        for f in range(7):
-            failsafe_level = 6-f
-            if failsafe_level == 6:
-                # Gaurantee to go from i -> i+1
-                X[(i,failsafe_level)] = R["No Catalyst"]
-                policy[(i, failsafe_level)] = "No Catalyst"
-                expected_catalyst[(i, failsafe_level)] = 0
-                expected_potent[(i, failsafe_level)] = 0
-            else:
-                # X[i,f] = minimum over actions a: Cost(a) + P_a(fail|failsafe level) * (X[0,0] + X[1,0] +... + X[i-1, 0] + X[i, f+1])
-                min_cost = np.inf
+    X = np.full((FMAX+1, AMAX+1, PMAX+1), np.inf)
+    policy = np.empty((FMAX+1, AMAX+1, PMAX+1), dtype=object)
+    expected_taps = np.full((FMAX+1, AMAX+1, PMAX+1), 0.0)
+    expected_catalyst = np.full((FMAX+1, AMAX+1, PMAX+1), 0.0)
+    expected_potent = np.full((FMAX+1, AMAX+1, PMAX+1), 0.0)
 
-                # Compute X[0,0] + ... + X[i-1, 0] + X[i, f+1]
-                cost_if_fail = 0
-                pinks_used_if_fail = 0
-                potents_used_if_fail = 0
-                for k in range(0, i):
-                    cost_if_fail += X[(k, 0)]
-                    pinks_used_if_fail += expected_catalyst[(k, 0)]
-                    potents_used_if_fail += expected_potent[(k, 0)]
-                cost_if_fail += X[(i, failsafe_level+1)]
-                pinks_used_if_fail += expected_catalyst[(i, failsafe_level+1)]
-                potents_used_if_fail += expected_potent[(i, failsafe_level+1)]
+    f=0
+    for f in reversed(range(FMAX+1)):
+        for a in range(AMAX+1):
+            for p in reversed(range(PMAX+1)):
+                if a == AMAX:
+                    if f == FMAX:
+                        X[(f,a,0)] = R["No Catalyst"]
+                        policy[(f,a,0)] = "No Catalyst"
+                        expected_taps[(f,a,0)] = 1
+                        expected_catalyst[(f,a,0)] = 0
+                        expected_potent[(f,a,0)] = 0
+                    elif p == 0:
+                        cost_if_fail = 0
+                        fail_taps = 0
+                        fail_catalysts_used = 0
+                        fail_potents_used = 0
+    
+                        for k in range(a+1): # Need to go through success chain of f+1 if fail.
+                            cost_if_fail += X[(f+1, k, 0)]
+                            fail_taps += expected_taps[(f+1, k, 0)]
+                            fail_catalysts_used += expected_catalyst[(f+1, k, 0)]
+                            fail_potents_used += expected_potent[(f+1, k, 0)]
 
-                for action in get_possible_actions(i, failsafe_level):
+                        for action in get_possible_actions(a, AMAX):
+                            p_success = P[(action,f,a,p)]
+                            cost_under_action = R[action] + (1-p_success) * cost_if_fail
+                            taps_under_action = 1 + (1-p_success) * fail_taps
+                            if action == "Catalyst":
+                                catalysts_under_action = 1 + (1-p_success) * fail_catalysts_used
+                            else:
+                                catalysts_under_action = (1-p_success) * fail_catalysts_used
 
-                    pinks_used = 0
-                    potents_used = 0
-                    if action == 'Catalyst':
-                        pinks_used = 1
-                    elif action == 'Potent':
-                        potents_used = 1
-                    elif action == '3 Star Catalyst':
-                        potents_used = 10
-                    elif action == '4 Star Catalyst':
-                        potents_used = 40
+                            if action == "Potent Catalyst":
+                                potents_under_action = 1 + (1-p_success) * fail_potents_used
+                            elif action == "3 Star Catalyst":
+                                potents_under_action = 10 + (1-p_success) * fail_potents_used
+                            elif action == "4 Star Catalyst":
+                                potents_under_action = 40 + (1-p_success) * fail_potents_used
+                            else:
+                                potents_under_action = (1-p_success) * fail_potents_used
 
-                    p_success = P[(action, i, failsafe_level)]
-                    cost_under_action = R[action] + (1-p_success) * cost_if_fail
-                    pinks_under_action = pinks_used + (1-p_success) * pinks_used_if_fail
-                    potents_under_action = potents_used + (1-p_success) * potents_used_if_fail
-                    min_cost = min(min_cost, cost_under_action)
-                    if cost_under_action <= min_cost:
-                        min_cost = cost_under_action
-                        policy[(i, failsafe_level)] = action
-                        expected_catalyst[(i, failsafe_level)] = pinks_under_action
-                        expected_potent[(i, failsafe_level)] = potents_under_action
+                            if cost_under_action <= X[(f,a,p)]:
+                                X[(f,a,p)] = cost_under_action
+                                policy[(f,a,p)] = action
+                                expected_taps[(f,a,p)] = taps_under_action
+                                expected_catalyst[(f,a,p)] = catalysts_under_action
+                                expected_potent[(f,a,p)] = potents_under_action
 
-                X[(i,failsafe_level)] = min_cost
+                elif p == 6:
+                    X[(f,a,p)] = R["No Catalyst"]
+                    policy[(f,a,p)] = "No Catalyst"
+                    expected_taps[(f,a,p)] = 1
+                    expected_catalyst[(f,a,p)] = 0
+                    expected_potent[(f,a,p)] = 0
+                else:
+                    cost_if_fail = 0
+                    fail_taps = 0
+                    fail_catalysts_used = 0
+                    fail_potents_used = 0
 
+                    for k in range(a):
+                        cost_if_fail += X[(f,k,0)]
+                        fail_taps += expected_taps[(f,k,0)]
+                        fail_catalysts_used += expected_catalyst[(f,k,0)]
+                        fail_potents_used += expected_potent[(f,k,0)]
+
+                    cost_if_fail += X[(f, a, p+1)]
+                    fail_taps += expected_taps[(f, a, p+1)]
+                    fail_catalysts_used += expected_catalyst[(f, a, p+1)]
+                    fail_potents_used += expected_potent[(f, a, p+1)]
+
+                    for action in get_possible_actions(a, AMAX):
+                        p_success = P[(action,f,a,p)]
+                        cost_under_action = R[action] + (1-p_success) * cost_if_fail
+                        taps_under_action = 1 + (1-p_success) * fail_taps
+
+                        if action == "Catalyst":
+                            catalysts_under_action = 1 + (1-p_success) * fail_catalysts_used
+                        else:
+                            catalysts_under_action = (1-p_success) * fail_catalysts_used
+
+                        if action == "Potent Catalyst":
+                            potents_under_action = 1 + (1-p_success) * fail_potents_used
+                        elif action == "3 Star Catalyst":
+                            potents_under_action = 10 + (1-p_success) * fail_potents_used
+                        elif action == "4 Star Catalyst":
+                            potents_under_action = 40 + (1-p_success) * fail_potents_used
+                        else:
+                            potents_under_action = (1-p_success) * fail_potents_used
+
+
+                        if cost_under_action <= X[(f,a,p)]:
+                            X[(f,a,p)] = cost_under_action
+                            policy[(f,a,p)] = action
+                            expected_taps[(f,a,p)] = taps_under_action
+                            expected_catalyst[(f,a,p)] = catalysts_under_action
+                            expected_potent[(f,a,p)] = potents_under_action
 
     total_cost = 0
-    pink_cost = 0
+    total_taps = 0
+    catalyst_cost = 0
     potent_cost = 0
-    for i in range(n+1):
-        total_cost += X[(i,0)]
-        pink_cost += expected_catalyst[(i,0)]
-        potent_cost += expected_potent[(i,0)]
+
+    success_path = get_success_path(start_state, AMAX)
+
+    for idx in success_path:
+        total_cost += X[idx]
+        total_taps += expected_taps[idx]
+        catalyst_cost += expected_catalyst[idx]
+        potent_cost += expected_potent[idx]
 
     if reference_frame == "OPALS":
-        opals_used_for_gold = total_cost - pink_cost  * catalyst_cost_map['Catalyst'] - potent_cost * catalyst_cost_map['Potent Catalyst']
+        opals_used_for_gold = total_cost - catalyst_cost  * catalyst_cost_map['Catalyst'] - potent_cost * catalyst_cost_map['Potent Catalyst']
         gold_tap_cost = opals_used_for_gold/gems_per_1m * 1_000_000
     elif reference_frame == "GOLD":
-        total_opals_used_for_catalyst = pink_cost  * catalyst_cost_map['Catalyst'] + potent_cost * catalyst_cost_map['Potent Catalyst']
+        total_opals_used_for_catalyst = catalyst_cost  * catalyst_cost_map['Catalyst'] + potent_cost * catalyst_cost_map['Potent Catalyst']
         gold_tap_cost = (total_cost - total_opals_used_for_catalyst) / gems_per_1m * 1000000
 
-    policy = {replace_stars(k, n): v for k, v in sorted(policy.items(), key=lambda item: str(item[0]))}
-    return total_cost, policy, gold_tap_cost, pink_cost, potent_cost
-
-
+    return total_cost, policy, gold_tap_cost, catalyst_cost, potent_cost

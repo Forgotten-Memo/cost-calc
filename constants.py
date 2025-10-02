@@ -52,9 +52,9 @@ CATALYST_COST_MAP = {
 
 CATALYST_MODIFIERS = {
     "No Catalyst": lambda x: x,
-    "Catalyst": lambda x: min(x * 1.5, x + 0.04),
-    "Stable Catalyst": lambda x: min(x * 1.5, x + 0.04),
-    "Potent Catalyst": lambda x: min(x * 2.0, x + 0.07),
+    "Catalyst": lambda x: min(x * 1.5, x + 0.04, 1),
+    "Stable Catalyst": lambda x: min(x * 1.5, x + 0.04, 1),
+    "Potent Catalyst": lambda x: min(x * 2.0, x + 0.07, 1),
     "3 Star Catalyst": lambda x: 1,
     "4 Star Catalyst": lambda x: 1
 }
@@ -73,11 +73,26 @@ FAILSAFES = {
 }
 
 FAILSAFE_TEXT = {
-    0: "No Failsafe!",
+    0: "Failsafe 0",
     1: "Failsafe I",
     2: "Failsafe II",
     3: "Failsafe III",
     4: "Failsafe IV",
     5: "Failsafe V",
-    6: "Failsafe VI :("
+    6: "Failsafe VI"
 }
+
+CLASSES = [
+    "Elementalist",
+    "Scytheguard",
+    "Gunner",
+    "Bounty Hunter",
+    "Berserker",
+    "Warlock",
+    "Magiblade",
+    "Cloudstrider",
+    "Starbreaker",
+    "Blademaiden",
+    "Mystrix",
+    "Magician"
+]

@@ -1,7 +1,8 @@
 import streamlit as st
 import numpy as np
-from typing import List, Callable
+from typing import List, Callable, Tuple
 import constants as CONST
+import itertools
 
 CATALYST_COST_MAP = {
     "No Catalyst": 0,
@@ -87,3 +88,108 @@ def calc_cost(catalyst_selected: List[str], base_cost: int, CATALYST_COST_MAP: d
     
 
     return total_cost, taps, catalyst_usage
+
+@st.cache_data(show_spinner=False)
+def optimise(base_cost: float, chain_length: int, CATALYST_COST_MAP: dict):
+    """
+    Optimise the catalyst usage for a given chain length and base cost.
+    """
+
+    sim_params = [["No Catalyst", "Catalyst", "Potent Catalyst"]] * chain_length
+    if chain_length == 3:
+        sim_params[-1].append("3 Star Catalyst")
+    elif chain_length == 4:
+        sim_params[-1].append("4 Star Catalyst")
+
+    permutations = list(itertools.product(*sim_params))
+
+    min_cost = float('inf')
+    min_key = None
+    min_taps = None
+    min_catalyst_usage = None
+
+    for i in permutations:
+        key = tuple(i)
+        total_cost, taps, catalyst_usage = calc_cost(i, base_cost, CATALYST_COST_MAP)
+
+        if total_cost < min_cost:
+            min_cost = total_cost
+            min_key = key
+            min_taps = taps
+            min_catalyst_usage = catalyst_usage
+    return min_key, min_cost, min_taps, min_catalyst_usage
+
+
+def get_sim_results(enhancement_level: int, base_cost: int,  catalyst_selected: List[str], n: int = 10000, hidden_r: bool=True) -> Tuple[List[float], List[int]]:
+    """
+    Run the simulation for a given base cost and catalyst selection.
+    """
+    
+    results = []
+    failsafes = []
+    steps_history = []
+    final_catalyst = catalyst_selected.pop("final", "Potent Catalyst")
+    failsafe_probs = modified_prob(CONST.FAILSAFES[enhancement_level], CONST.CATALYST_MODIFIERS.get(final_catalyst, lambda x: x))
+    catalysts_results = []
+
+    raw_probs = [CONST.CATALYST_PROB_MAP[c] for c in catalyst_selected.values()]
+    costs = [CATALYST_COST_MAP[c] + base_cost for c in catalyst_selected.values()]
+    
+    for _ in range(n):
+        total_cost = 0
+        failsafe = 0
+        steps = 0
+        catalysts_used = {}
+
+        if len(raw_probs) != len(costs):
+            raise ValueError("raw_probs and cost must have the same length")
+        while failsafe < 7:
+            steps += 1
+            max_state = len(raw_probs)
+            state = 0
+            fails = [0] * max_state
+            
+            while state != max_state:
+                probs = raw_probs[state]
+                total_cost += costs[state]
+                catalysts_used[catalyst_selected[state]] = catalysts_used.get(catalyst_selected[state], 0) + 1
+                rng = np.random.random()
+                
+                if fails[state] == 6:
+                    next_state = state + 1
+                    fails[state] = 0
+                elif fails[state] in (4, 5) and hidden_r and rng <= CONST.CATALYST_MODIFIERS[catalyst_selected[state]](0.5):
+                    next_state = state + 1
+                    fails[state] = 0
+                elif rng <= probs:
+                    next_state = state + 1
+                    fails[state] = 0
+                else:
+                    next_state = 0
+                    fails[state] += 1
+                
+                state = next_state
+                steps += 1
+            
+            rng2 = np.random.random()
+            total_cost += CATALYST_COST_MAP[final_catalyst] + base_cost # Failsafe tap
+            catalysts_used[final_catalyst] = catalysts_used.get(final_catalyst, 0) + 1
+
+            if rng2 <= failsafe_probs[failsafe]:
+                results.append(total_cost)
+                failsafes.append(failsafe)
+                catalysts_results.append(catalysts_used)
+                break
+            else:
+                failsafe += 1
+        steps_history.append(steps)
+    return results, failsafes, steps_history, catalysts_results
+
+
+@st.cache_data(show_spinner=False)
+def get_cached_sim_results(enhancement_level: int, base_cost: float, catalyst_selected: List[str], CATALYST_COST_MAP: dict, n: int = 1000, hidden_r: bool = True) -> Tuple[List[float], List[int]]:
+    """
+    Get cached simulation results for a given base cost and catalyst selection.
+    """
+
+    return get_sim_results(enhancement_level=enhancement_level, base_cost=base_cost, hidden_r=hidden_r, catalyst_selected=catalyst_selected, n=n)
