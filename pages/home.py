@@ -14,7 +14,7 @@ st.markdown(
 
 st.subheader("📢 Recent Updates")
 updates = [
-    {"title": "2025-10-01 - v0.2.1", "message": "- Added home page and notice board for recent updates\n"
+    {"title": "2025-10-02 - v0.2.1", "message": "- Added home page and notice board for recent updates\n"
      "- Luck Calc: Update weights and probabilities to account for hidden rates at 4/6 and 5/6. This moderates luck scores significantly.\n"
      "- Luck Calc: Add ability to specify redundant taps and level that use guaranteed amp catalysts.\n"
      "- Optimiser: Add ability to specify current failsafe, amp, pity.\n"

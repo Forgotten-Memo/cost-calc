@@ -96,7 +96,7 @@ stdev = sum((expectation_map[i] * 0.333) ** 2 for i in [weapon, helmet, breastpl
     necklace, bracers, ring, talisman, seal]) ** 0.5
 percentile = norm.cdf(adjusted_total_taps, loc=expected_taps-reduced_taps, scale=stdev)
 
-luck_status = "My Condolences"
+luck_status = "Victim of Glen"
 luck_thresholds = {
     "RNGesus": 0.95,
     "Very Lucky": 0.85,
