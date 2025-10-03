@@ -39,22 +39,23 @@ st.title("CoA Enhancement Calculator")
 with st.container(border=True):
     st.write("A tool to optimise and calculate how ridiculous the cost of enhancement can be in CoA to help you think twice before giving your money to Glen. By シHyacine (IW01) @forgotten_memo.")
 
-
+#[f"{i} → 15" for i in range(10,15)] + 
 ### Configuration Display
 with st.container(border=True):
     st.subheader("Configuration")
     enhancement_level_select = st.selectbox(label="Enhancement Level", options=[f"{i} → {i+1}" for i in range(15,25)])
     enhancement_level = int(enhancement_level_select.split(" → ")[0])
     
-    cols = st.columns(3)
-    current_failsafe = cols[0].number_input(label="Current Failsafe", min_value=0, max_value=6, value=3, key="failsafe", help="Current failsafe")
-    current_amp_str = cols[1].selectbox(label="Current Amp", options=[replace_stars(i, enhancement_level) for i in range(CONST.AMP_THRESHOLDS[enhancement_level] + 1)], help="Current amplification level")
-    current_amp = current_amp_str.count("★")
-    if current_amp != CONST.AMP_THRESHOLDS[enhancement_level]:
-        current_pity_str = cols[2].selectbox(label="Current Amp Pity", options=[f"{i}/6" for i in range(7)], help="Current amplification pity")
-        current_pity = int(current_pity_str.split("/")[0])
-    else:
-        current_pity = 0
+    if enhancement_level >= 15:
+        cols = st.columns(3)
+        current_failsafe = cols[0].number_input(label="Current Failsafe", min_value=0, max_value=6, value=3, key="failsafe", help="Current failsafe")
+        current_amp_str = cols[1].selectbox(label="Current Amp", options=[replace_stars(i, enhancement_level) for i in range(CONST.AMP_THRESHOLDS[enhancement_level] + 1)], help="Current amplification level")
+        current_amp = current_amp_str.count("★")
+        if current_amp != CONST.AMP_THRESHOLDS[enhancement_level]:
+            current_pity_str = cols[2].selectbox(label="Current Amp Pity", options=[f"{i}/6" for i in range(7)], help="Current amplification pity")
+            current_pity = int(current_pity_str.split("/")[0])
+        else:
+            current_pity = 0
 
     start_index = (current_failsafe, current_amp, current_pity)
 

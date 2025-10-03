@@ -16,7 +16,18 @@ CATALYST_COST_MAP = {
 
 st.session_state.setdefault('gold_market_price', 200.0)
 
-def gen_matrix_dolphin(catalyst_selected: list[str]):
+def apply_hidden_r(base_prob: float, hard_pity: int = 7):
+    exp = 0
+    q = 1
+    for i in range(1, hard_pity + 1):
+        p = base_prob * q
+        exp += i * p
+        q -= p
+    exp += hard_pity * q
+    return 1 / exp
+
+
+def gen_matrix_dolphin(catalyst_selected: list[str], hidden_r: int = 0) -> np.ndarray:
     """
     Generates probability matrix given a list of raw probabilities
     """
@@ -24,12 +35,12 @@ def gen_matrix_dolphin(catalyst_selected: list[str]):
 
     P = np.zeros((6, 6))
     for i in range(5):
+        p = apply_hidden_r(probs[i])
         if i <= 2 and catalyst_selected[i] == "Stable Catalyst":
-            P[i][i] = 1 - probs[i]
-            P[i][i+1] = probs[i]
+            P[i][i] = 1 - p
         else:
-            P[i][max(i-1,0)] = 1 - probs[i]
-            P[i][i+1] = probs[i]
+            P[i][max(i-1,0)] = 1 - p
+        P[i][i+1] = p
 
     P[5][5] = 1 # absorbing state
     return P
@@ -60,7 +71,7 @@ def calc_cost_dolphin(catalyst_selected: List[str], base_cost: int, start_level:
     return total_cost, taps, catalyst_usage
 
 @st.cache_data(show_spinner=False)
-def optimise(base_cost, enhancement_level):
+def optimise(base_cost: float, enhancement_level: int):
     sim_params = [["No Catalyst", "Catalyst", "Stable Catalyst", "Potent Catalyst"]] * 5
     permutations = list(itertools.product(*sim_params))
 
