@@ -104,7 +104,7 @@ luck_thresholds = {
     "Lucky": 0.65,
     "Neutral": 0.35,
     "Unlucky": 0.15,
-    "Victim of Glen": 0.05
+    "Very Unlucky": 0.05,
 }
 
 
