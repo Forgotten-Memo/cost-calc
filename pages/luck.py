@@ -92,7 +92,7 @@ expected_taps = sum(expectation_map[i] for i in [weapon, helmet, breastplate, ga
     necklace, bracers, ring, talisman, seal])
 
 ### Calculate Stats and Results
-stdev = sum((expectation_map[i] * 0.333) ** 2 for i in [weapon, helmet, breastplate, gauntlets, pants, boots,
+stdev = sum((expectation_map[i] * 0.5) ** 2 for i in [weapon, helmet, breastplate, gauntlets, pants, boots,
     necklace, bracers, ring, talisman, seal]) ** 0.5
 percentile = norm.cdf(adjusted_total_taps, loc=expected_taps-reduced_taps, scale=stdev)
 
