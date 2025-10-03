@@ -8,10 +8,11 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 CUMULATIVE_AMP_EXP = 3.75
-CATALYST_MOD = 0.04
+CATALYST_MOD = 0.025
 DEFAULT_TAPS = 1650
 DEFAULT_WEAP_LEVEL = 18
 DEFAULT_ARMOR_LEVEL = 15
+BASE_STDEV = 10
 
 st.title("Luck Scorer")
 description = "A fun scorer that gauges how lucky you are based on your total number of taps and enhancement levels. Thresholds are quite arbitrary for now and this is just for fun.\n"\
@@ -93,7 +94,7 @@ expected_taps = sum(expectation_map[i] for i in [weapon, helmet, breastplate, ga
 
 ### Calculate Stats and Results
 stdev = sum((expectation_map[i] * 0.5) ** 2 for i in [weapon, helmet, breastplate, gauntlets, pants, boots,
-    necklace, bracers, ring, talisman, seal]) ** 0.5
+    necklace, bracers, ring, talisman, seal]) ** 0.5 + BASE_STDEV
 percentile = norm.cdf(adjusted_total_taps, loc=expected_taps-reduced_taps, scale=stdev)
 
 luck_status = "Victim of Glen"
