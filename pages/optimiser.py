@@ -48,7 +48,7 @@ with st.container(border=True):
     
     if enhancement_level >= 15:
         cols = st.columns(3)
-        current_failsafe = cols[0].number_input(label="Current Failsafe", min_value=0, max_value=6, value=3, key="failsafe", help="Current failsafe")
+        current_failsafe = cols[0].number_input(label="Current Failsafe", min_value=0, max_value=6, value=0, key="failsafe", help="Current failsafe")
         current_amp_str = cols[1].selectbox(label="Current Amp", options=[replace_stars(i, enhancement_level) for i in range(CONST.AMP_THRESHOLDS[enhancement_level] + 1)], help="Current amplification level")
         current_amp = current_amp_str.count("★")
         if current_amp != CONST.AMP_THRESHOLDS[enhancement_level]:
