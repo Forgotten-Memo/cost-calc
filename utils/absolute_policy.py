@@ -166,6 +166,8 @@ def get_min_cost(current_level: int, cost_per_tap_in_gold: int, gems_per_1m: flo
     expected_catalyst = np.full((FMAX+1, AMAX+1, PMAX+1), 0.0)
     expected_potent = np.full((FMAX+1, AMAX+1, PMAX+1), 0.0)
 
+    fs_success_rates = {}
+
     f=0
     for f in reversed(range(FMAX+1)):
         for a in range(AMAX+1):
@@ -177,6 +179,7 @@ def get_min_cost(current_level: int, cost_per_tap_in_gold: int, gems_per_1m: flo
                         expected_taps[(f,a,0)] = 1
                         expected_catalyst[(f,a,0)] = 0
                         expected_potent[(f,a,0)] = 0
+                        fs_success_rates[f] = 1
                     elif p == 0:
                         cost_if_fail = 0
                         fail_taps = 0
@@ -191,6 +194,8 @@ def get_min_cost(current_level: int, cost_per_tap_in_gold: int, gems_per_1m: flo
 
                         for action in get_possible_actions(a, AMAX):
                             p_success = P[(action,f,a,p)]
+                            fs_success_rates[f] = p_success
+                            
                             cost_under_action = R[action] + (1-p_success) * cost_if_fail
                             taps_under_action = 1 + (1-p_success) * fail_taps
                             if action == "Catalyst":
@@ -284,4 +289,11 @@ def get_min_cost(current_level: int, cost_per_tap_in_gold: int, gems_per_1m: flo
         total_opals_used_for_catalyst = catalyst_cost  * catalyst_cost_map['Catalyst'] + potent_cost * catalyst_cost_map['Potent Catalyst']
         gold_tap_cost = (total_cost - total_opals_used_for_catalyst) / gems_per_1m * 1000000
 
-    return total_cost, policy, gold_tap_cost, catalyst_cost, potent_cost
+    exp_fails = 0
+    cum_fail_rate = 0
+    for i in range(7):
+        if i in fs_success_rates:
+            p = fs_success_rates[i]
+            exp_fails += (1 - cum_fail_rate) * p * (i+1)
+            cum_fail_rate += (1 - cum_fail_rate) * p
+    return total_cost, policy, gold_tap_cost, catalyst_cost, potent_cost, exp_fails

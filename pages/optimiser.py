@@ -74,39 +74,53 @@ chain_length = CONST.AMP_THRESHOLDS[enhancement_level]
 st.subheader("Detailed Optimal Policy")
 st.info("Special thanks to @wu6551 for the collaboration on the detailed optimal policy breakdown.")
 
-total_cost, policy, gold_tap_cost, expected_catalyst, expected_potent = absolute_policy.get_min_cost(enhancement_level, attempt_cost, st.session_state['gold_price'], CATALYST_COST_MAP, hidden_rates=hidden_rates_toggle, start_state=start_index)
+total_cost, policy, gold_tap_cost, expected_catalyst, expected_potent, exp_fails = absolute_policy.get_min_cost(enhancement_level, attempt_cost, st.session_state['gold_price'], CATALYST_COST_MAP, hidden_rates=hidden_rates_toggle, start_state=start_index)
 
 st.write(f"Average Opal Value: `{total_cost:,.2f}` opals ")
+st.write(f"Expected Full-Star Attempts: `{exp_fails:,.2f}` (`{CONST.FAILSAFE_TEXT[np.round(exp_fails-1)]}`)")
+
 with st.container(border=True):
-    st.write(f"Average Taps: `{gold_tap_cost / attempt_cost:,.0f}` --- (`{gold_tap_cost:,.0f}` gold)")
-    if expected_catalyst > 0:
-        st.write(f"Catalyst: `{expected_catalyst:,.1f}`")
-    if expected_potent > 0:
-        st.write(f"Potent Catalyst: `{expected_potent:,.1f}`")
+    cost_mode_tabs = st.tabs(["Total Cost", "Cost Per Failsafe"])
+    with cost_mode_tabs[0]:
+        st.write(f"Average Taps: `{gold_tap_cost / attempt_cost:,.0f}` --- (`{gold_tap_cost:,.0f}` gold)")
+        if expected_catalyst > 0:
+            st.write(f"Catalyst: `{expected_catalyst:,.1f}`")
+        if expected_potent > 0:
+            st.write(f"Potent Catalyst: `{expected_potent:,.1f}`")
+    with cost_mode_tabs[1]:
+        st.write(f"Average Taps per Failsafe: `{gold_tap_cost / attempt_cost / exp_fails:,.0f}` --- (`{gold_tap_cost / exp_fails:,.0f}` gold)")
+        if expected_catalyst > 0:
+            st.write(f"Catalyst per Failsafe: `{expected_catalyst / exp_fails:,.1f}`")
+        if expected_potent > 0:
+            st.write(f"Potent Catalyst per Failsafe: `{expected_potent / exp_fails:,.1f}`")
+
+    
     
 with st.expander("Optimal Policy"):
-    tabs = st.tabs(["Pivot Table", "Raw Results"])
-    data = process_policy(policy, enhancement_level)[CONST.FAILSAFE_TEXT[0]]
-    with tabs[0]:
-        table_data = []
-        for k, v in data.items():
-            print(k.split(" "))
-            if " → "in k:
-                stars, pity = k.split(" → ")
+    display_mode = st.radio("Display Mode", ["Table", "Raw Data"], horizontal=True, index=0)
+    fs_tabs = st.tabs(list(CONST.FAILSAFE_TEXT.values()))
+    
+    for i, _ in enumerate(fs_tabs):
+        with fs_tabs[i]:
+            if display_mode == "Raw Data":
+                st.write(process_policy(policy, enhancement_level)[CONST.FAILSAFE_TEXT[i]])
             else:
-                stars, pity = k.split(" ")
-        
-            table_data.append({
-                "Stars": stars,
-                "Pity": pity.strip("()"), 
-                "Catalyst": highlight_potent(v)
-            })
-        df = pd.DataFrame(table_data)
-        pivot_df = df.pivot(index="Stars", columns="Pity", values="Catalyst").fillna("")
-        pivot_df.columns.name = None
-        pivot_df = pivot_df.reset_index()
-        st.markdown(pivot_df.to_html(escape=False, index=False), unsafe_allow_html=True)
-        
-
-    with tabs[1]:
-        st.write(data)
+                data = process_policy(policy, enhancement_level)[CONST.FAILSAFE_TEXT[i]]                
+                table_data = []
+                for k, v in data.items():
+                    if " → "in k:
+                        stars, pity = k.split(" → ")
+                    else:
+                        stars, pity = k.split(" ")
+                
+                    table_data.append({
+                        "Stars": stars,
+                        "Pity": pity.strip("()"), 
+                        "Catalyst": highlight_potent(v)
+                    })
+                df = pd.DataFrame(table_data)
+                pivot_df = df.pivot(index="Stars", columns="Pity", values="Catalyst").fillna("")
+                pivot_df.columns.name = None
+                pivot_df = pivot_df.reset_index()
+                st.markdown(pivot_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+                    
